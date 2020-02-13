@@ -1,0 +1,242 @@
+---
+title: "RFinalProject_ShutimaP"
+author: "Shutima P"
+date: "1/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R for Big Data Final Project: Exploratory Data Analysis of Airbnb Database by Shutima Potivorakun
+## Loading the data from Rdata file
+
+```{r}
+load('AirBnB.Rdata')
+```
+
+## Descriptive Analysis
+
+```{r}
+summary(L)
+```
+
+## Check table L
+
+```{r}
+View(L)
+```
+
+## Data treatment
+We need to use the price columns (including weekly_price and monthly_price) but the raw data contains the price data prefixed with `$` and with `,` for thousand delimiter, and not yet in a numeric format. Therefore we need to remove all `$` symbols and also `,` from this column and change the data to numeric type. We will do this using as.numeric and gsub functions.
+
+```{r}
+# Changing the price columns from character to numeric by removing $ and consider the decimal point
+L$price <- as.numeric(gsub('\\$|,', '', L$price))
+L$weekly_price <- as.numeric(gsub('\\$|,', '', L$weekly_price))
+L$monthly_price <- as.numeric(gsub('\\$|,', '', L$monthly_price))
+#L$price
+#L$weekly_price
+#L$monthly_price
+```
+
+Below, we will:
+- Drop columns with only missing values
+- For all numeric columns, replace missing value with median column value
+- Double check that there is no remaining missing values
+
+```{r}
+# Check missing values with below command in R console
+# colSums(is.na(L))
+# The result shows that column neighbourhood_group_cleansed and has_availability are completely empty therefore we drop these 2 columns
+L$neighbourhood_group_cleansed <- NULL
+L$has_availability <- NULL
+
+# Replace missing numerical values with the column median
+nums <- unlist(lapply(L, is.numeric))
+for (nm in names(nums)) {
+  #print(nm)
+  #print(nums[[nm]])
+  if (nums [[nm]]) {
+    myna <- is.na(L[[nm]])
+    mycol <- L[[nm]]
+    mycol[myna] <- median(L[[nm]], na.rm = TRUE)
+    L[[nm]] <- mycol
+  }
+}
+
+# Recheck for missing values
+colSums(is.na(L))
+```
+
+Test that there is no problem to process the data by plotting a histogram of price column
+
+```{r}
+# Loading ggplot
+library(ggplot2)
+hist(L$price, breaks = 50, freq = FALSE)
+
+```
+
+
+
+## Question 1: Relationship between apartment prices and apartment features
+
+1. Relationship between apartment prices and apartment neighbourhood using ggplot
+Here we will represent the average apartment price per neighbourhood.
+
+```{r}
+library(tidyverse)
+p <- L %>%
+  group_by(neighbourhood) %>%
+  summarize(price = mean(price)) %>%
+  ggplot(aes(y = price, x = neighbourhood)) + 
+  geom_col() +
+  theme(axis.text.x = element_text(size = 8, angle = 90)) +
+  ggtitle("Average Apt Price per Neighbourhood")
+p
+```
+
+2. Relationship between apartment prices and apartment room_type using ggplot
+This relationship shows that there are 3 types of apartment types:
+- Entire home/apt
+- Private room
+- Shared room
+The price to rent an entire home/apt is the most expensive, when shared room type is the cheapest
+
+```{r}
+# Create new data frame with columns Price and Room Type
+
+tmpRT<-data.frame(L$room_type, L$price)
+#tmpRT
+```
+
+Then use `aggregate()` to compute the average apartment price per room type then store the result in the new data frame
+
+```{r}
+tmpRT_new <- aggregate(x = tmpRT$L.price, by = list(tmpRT$L.room_type), function(x) mean(x))
+#tmpRT_new
+```
+
+Finally, use ggplot to plot the relationship of average apartment price per room type
+
+```{r}
+p2 <- tmpRT_new %>%
+  group_by(Group.1) %>%
+  summarize(x = mean(x)) %>%
+  ggplot(aes(y = x, x = Group.1)) + 
+  geom_col() +
+  theme(axis.text.x = element_text(size = 8, angle = 90)) + ylab("Price") + xlab("Room Type") +
+  ggtitle("Average Apt Price per Room Type")
+p2
+
+```
+
+3. Relationship between apartment prices and apartment bed_type using ggplot
+This graph shows that there are 5 bed types:
+- Airbed
+- Couch
+- Futon
+- Pull-out Sofa
+- Real bed
+Here, it shows that the apartments with real beds are the most expensive, while the apartments with airbeds are the cheapest to rent.
+
+
+```{r}
+# Show relationship between apartment price and the bed type using ggplot
+# Create new data frame with columns Price and Bed Type
+tmpBT<-data.frame(L$bed_type, L$price)
+#tmpBT
+```
+
+Then use `aggregate()` to compute the average apartment price per bed type then store the result in the new data frame
+
+```{r}
+tmpBT_new <- aggregate(x = tmpBT$L.price, by = list(tmpBT$L.bed_type), function(x) mean(x))
+#tmpBT_new
+```
+
+Finally, use ggplot to plot the relationship of average apartment price per bed type
+
+```{r}
+p3 <- tmpBT_new %>%
+  group_by(Group.1) %>%
+  summarize(x = mean(x)) %>%
+  ggplot(aes(y = x, x = Group.1)) + 
+  geom_col() +
+  theme(axis.text.x = element_text(size = 8, angle = 90)) + ylab("Price") + xlab("Bed Type") +
+  ggtitle("Average Apt Price per Bed Type")
+p3
+
+```
+
+## Question 2: Number of apartments per owner
+
+```{r}
+count <- table(L$host_total_listings_count)
+countHN <- table(L$host_name)
+barplot(countHN, count, main = "Number of Apt per owner", xlab = "Host Name", ylab = "Host Total Listings count") 
+
+```
+
+## Question 3: Rent Price per City Quarter ("arrondissements")
+
+Here we would like to represent the relationship of the average apartment price per arrondissements (Paris Zip Code), so we need to use the price and zipcode columns from the database
+
+```{r}
+# Create new data frame with columns Price and Zipcode
+
+tmpAR<-data.frame(L$zipcode, L$price)
+#tmpAR
+```
+
+Then use `aggregate()` to compute the average apartment price per arrondissement then store the result in the new data frame
+
+
+```{r}
+tmpAR_new <- aggregate(x = tmpAR$L.price, by = list(tmpAR$L.zipcode), function(x) mean(x))
+#tmpAR_new
+```
+
+Finally, use ggplot to plot the relationship of average apartment price per arrondissement
+
+```{r}
+p4 <- tmpAR_new %>%
+  group_by(Group.1) %>%
+  summarize(x = mean(x)) %>%
+  ggplot(aes(y = x, x = Group.1)) + 
+  geom_col() +
+  theme(axis.text.x = element_text(size = 8, angle = 90)) + ylab("Price") + xlab("Arrondissement") +
+  ggtitle("Average Apt Price per Arrondissement")
+p4
+```
+
+## Question 4: Visit frequency of the different quarters according to time.
+We will use the columns zipcode and `reviews_per_month` for this representation as the column `reviews_per_month` can tell us which quarters (arrondissement) has the most reviews per month (most visited).
+
+This ggplot below shows us that the quarter (arrondissement) 93170, or Bagnolet, has the most reviews per month. Or, is the most visited quarter in Paris.
+
+
+```{r}
+p5 <- L %>%
+  group_by(zipcode) %>%
+  summarize(reviews_per_month = mean(reviews_per_month)) %>%
+  ggplot(aes(y = reviews_per_month, x = zipcode)) + 
+  geom_col() +
+  theme(axis.text.x = element_text(size = 8, angle = 90)) + xlab("Arrondissement") +
+  ggtitle("Visit Frequency of the Different Quarters according to Time")
+p5
+```
+
+
+## Producing demonstration Web Site Thanks to Shiny
+
+```{r}
+#install.packages("shiny")
+library(shiny)
+
+```
+
+# That's all folks! I hope you enjoyed my reports :)
+
