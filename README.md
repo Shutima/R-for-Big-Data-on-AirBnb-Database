@@ -3,6 +3,8 @@ R for Big Data Final Project
 Exploratory Data Analysis of Airbnb Database
 This lab explains the step-by-step exploratory data analysis of Airbnb Paris listing dataset. The lab starts with dataset processing and treatment. Then, we will present several data analysis graphs for different types of relationships concerning Airbnb Paris listing data.
 
+![Screenshot1](https://user-images.githubusercontent.com/57285863/74426944-91e3c980-4e56-11ea-9fcd-f2c5fb516b98.png)
+
 ## Getting Started
 In order to have this project up and running, you need to install R studio:
 https://rstudio.com/
